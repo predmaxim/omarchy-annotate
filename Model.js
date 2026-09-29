@@ -202,3 +202,27 @@ function fileName(d) {
   return "annotate-" + d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate())
     + "_" + pad(d.getHours()) + "-" + pad(d.getMinutes()) + "-" + pad(d.getSeconds()) + ".png"
 }
+
+// Saves or copies the monitor with the drawing on it (the overlay is on
+// screen, so grim takes it too). Prints the saved path; exits 2 when the
+// area selection was cancelled. The folder is found as omarchy-capture-screenshot does.
+var CAPTURE = [
+  'set -o pipefail',
+  'kind=$1 monitor=$2 dir=$3 name=$4',
+  'if [[ $kind == copy ]]; then grim -o "$monitor" - | wl-copy -t image/png; exit; fi',
+  '[[ -f ~/.config/user-dirs.dirs ]] && source ~/.config/user-dirs.dirs',
+  'dir=${dir/#\\~/$HOME}',
+  'dir=${dir:-${OMARCHY_SCREENSHOT_DIR:-${XDG_PICTURES_DIR:-$HOME/Pictures}}}',
+  'mkdir -p "$dir" || exit',
+  'if [[ $kind == region ]]; then',
+  '  area=$(slurp) || exit 2',
+  '  grim -g "$area" "$dir/$name"',
+  'else',
+  '  grim -o "$monitor" "$dir/$name"',
+  'fi || exit',
+  'echo "$dir/$name"'
+].join("\n")
+
+function captureCommand(kind, monitor, saveDir, name) {
+  return ["bash", "-c", CAPTURE, "annotate", kind, monitor, saveDir || "", name]
+}

@@ -2,9 +2,11 @@
 const fs = require("fs")
 const path = require("path")
 const assert = require("assert")
+const os = require("os")
+const { spawnSync } = require("child_process")
 const load = (file, names) => new Function(
   fs.readFileSync(path.join(__dirname, file), "utf8").replace(".pragma library", "") + "; return {" + names + "}")()
-const M = load("Model.js", "PALETTE, TOOLS, DEFAULTS, WIDTH_STEP, colorOf, normalize, readEntry, parseEvent, newShape, extend, isEmpty, svgPath, arrowHead, fontSize, keyAction, screenAt, fileName")
+const M = load("Model.js", "PALETTE, TOOLS, DEFAULTS, WIDTH_STEP, colorOf, normalize, readEntry, parseEvent, newShape, extend, isEmpty, svgPath, arrowHead, fontSize, keyAction, screenAt, fileName, captureCommand")
 
 // Palette: keys resolve to colors; accent and unknown keys take the theme's accent.
 assert.strictEqual(M.PALETTE.length, 8)
@@ -117,5 +119,63 @@ assert.strictEqual(M.screenAt([], 0, 0), null)
 
 // File name: local time.
 assert.strictEqual(M.fileName(new Date(2026, 8, 29, 7, 5, 3)), "annotate-2026-09-29_07-05-03.png")
+
+// Capture script, run with grim, slurp and wl-copy stubs in a scratch HOME.
+function capture(kind, saveDir, prepare) {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "annotate-"))
+  const bin = path.join(home, "bin")
+  fs.mkdirSync(bin)
+  const stub = (name, body) => fs.writeFileSync(path.join(bin, name), "#!/bin/bash\n" + body + "\n", { mode: 0o755 })
+  stub("grim", 'echo "$*" >> "$HOME/grim.args"; [[ -n $GRIM_FAIL ]] && { echo "grim: no output" >&2; exit 1; }; out=${@: -1}; if [[ $out == - ]]; then echo PNG; else echo PNG > "$out"; fi')
+  stub("slurp", '[[ -n $SLURP_CANCEL ]] && exit 1; echo "1,2 30x40"')
+  stub("wl-copy", 'cat > "$HOME/clip"; echo "$*" > "$HOME/wl-copy.args"')
+  const env = Object.assign({ PATH: bin + ":" + process.env.PATH, HOME: home }, prepare ? prepare(home) : {})
+  const cmd = M.captureCommand(kind, "DP-1", saveDir, "shot.png")
+  const r = spawnSync(cmd[0], cmd.slice(1), { env, encoding: "utf8" })
+  const read = f => fs.existsSync(path.join(home, f)) ? fs.readFileSync(path.join(home, f), "utf8") : null
+  return { home, status: r.status, out: r.stdout.trim(), err: r.stderr, read }
+}
+
+let c = capture("screen", "")
+assert.strictEqual(c.status, 0, c.err)
+assert.strictEqual(c.out, c.home + "/Pictures/shot.png")
+assert.strictEqual(c.read("Pictures/shot.png"), "PNG\n")
+assert.strictEqual(c.read("grim.args"), "-o DP-1 " + c.home + "/Pictures/shot.png\n")
+
+c = capture("screen", "~/My Shots")
+assert.strictEqual(c.out, c.home + "/My Shots/shot.png", "~ and spaces in the folder")
+assert.strictEqual(c.read("My Shots/shot.png"), "PNG\n")
+
+c = capture("screen", "", home => ({ OMARCHY_SCREENSHOT_DIR: home + "/omarchy" }))
+assert.strictEqual(c.out, c.home + "/omarchy/shot.png")
+
+c = capture("screen", "", home => {
+  fs.mkdirSync(home + "/.config")
+  fs.writeFileSync(home + "/.config/user-dirs.dirs", 'XDG_PICTURES_DIR="$HOME/Images"\n')
+  return {}
+})
+assert.strictEqual(c.out, c.home + "/Images/shot.png")
+
+c = capture("region", "")
+assert.strictEqual(c.status, 0, c.err)
+assert.strictEqual(c.read("grim.args"), "-g 1,2 30x40 " + c.home + "/Pictures/shot.png\n")
+
+c = capture("region", "", () => ({ SLURP_CANCEL: "1" }))
+assert.strictEqual(c.status, 2)
+assert.strictEqual(c.read("grim.args"), null, "a cancelled selection takes no shot")
+
+c = capture("copy", "")
+assert.strictEqual(c.status, 0, c.err)
+assert.strictEqual(c.read("clip"), "PNG\n")
+assert.strictEqual(c.read("wl-copy.args"), "-t image/png\n")
+assert.strictEqual(c.read("Pictures/shot.png"), null, "copying saves no file")
+
+c = capture("copy", "", () => ({ GRIM_FAIL: "1" }))
+assert.notStrictEqual(c.status, 0, "a failed grim fails the copy")
+
+c = capture("screen", "", () => ({ GRIM_FAIL: "1" }))
+assert.notStrictEqual(c.status, 0)
+assert.strictEqual(c.out, "", "no path for a failed shot")
+assert.match(c.err, /grim: no output/)
 
 console.log("ok")
