@@ -7,6 +7,7 @@ var TABLES = {
     "Annotate": "Рисование",
     // Service
     "Saved: %1": "Сохранено: %1",
+    "Saved and copied: %1": "Сохранено и скопировано: %1",
     "Copied to the clipboard": "Скопировано в буфер обмена",
     "Not saved: %1": "Не сохранено: %1",
     "Not copied: %1": "Не скопировано: %1",
@@ -18,7 +19,7 @@ var TABLES = {
       "Фигуры и текст. Ctrl+S — сохранить экран, Ctrl+Shift+S — область, Ctrl+C — копировать, Esc — сбросить.",
     "Width: %1 px": "Толщина: %1 px",
     "Save to": "Сохранять в",
-    "Empty — the Omarchy screenshots folder": "Пусто — папка скриншотов Omarchy",
+    "Empty — ~/Pictures/Screenshots": "Пусто — ~/Pictures/Screenshots",
     "Done": "Готово"
   }
 }

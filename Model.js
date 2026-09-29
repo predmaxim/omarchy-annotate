@@ -203,26 +203,35 @@ function fileName(d) {
     + "_" + pad(d.getHours()) + "-" + pad(d.getMinutes()) + "-" + pad(d.getSeconds()) + ".png"
 }
 
+// grim's -g geometry for an area dragged in the editor (global, logical
+// pixels); "" when it is too small to mean anything.
+function areaGeometry(x1, y1, x2, y2) {
+  var x = Math.round(Math.min(x1, x2)), y = Math.round(Math.min(y1, y2))
+  var w = Math.round(Math.abs(x2 - x1)), h = Math.round(Math.abs(y2 - y1))
+  if (w < 2 || h < 2) return ""
+  return x + "," + y + " " + w + "x" + h
+}
+
 // Saves or copies the monitor with the drawing on it (the overlay is on
-// screen, so grim takes it too). Prints the saved path; exits 2 when the
-// area selection was cancelled. The folder is found as omarchy-capture-screenshot does.
+// screen, so grim takes it too), or saves an area of it and copies that too.
+// Prints the saved path. The default folder is Screenshots in the pictures
+// folder (~/Pictures/Screenshots).
 var CAPTURE = [
   'set -o pipefail',
-  'kind=$1 monitor=$2 dir=$3 name=$4',
+  'kind=$1 monitor=$2 dir=$3 name=$4 area=$5',
   'if [[ $kind == copy ]]; then grim -o "$monitor" - | wl-copy -t image/png; exit; fi',
   '[[ -f ~/.config/user-dirs.dirs ]] && source ~/.config/user-dirs.dirs',
   'dir=${dir/#\\~/$HOME}',
-  'dir=${dir:-${OMARCHY_SCREENSHOT_DIR:-${XDG_PICTURES_DIR:-$HOME/Pictures}}}',
+  'dir=${dir:-${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots}',
   'mkdir -p "$dir" || exit',
   'if [[ $kind == region ]]; then',
-  '  area=$(slurp) || exit 2',
-  '  grim -g "$area" "$dir/$name"',
+  '  grim -g "$area" "$dir/$name" && wl-copy -t image/png < "$dir/$name"',
   'else',
   '  grim -o "$monitor" "$dir/$name"',
   'fi || exit',
   'echo "$dir/$name"'
 ].join("\n")
 
-function captureCommand(kind, monitor, saveDir, name) {
-  return ["bash", "-c", CAPTURE, "annotate", kind, monitor, saveDir || "", name]
+function captureCommand(kind, monitor, saveDir, name, area) {
+  return ["bash", "-c", CAPTURE, "annotate", kind, monitor, saveDir || "", name, area || ""]
 }

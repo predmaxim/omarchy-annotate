@@ -11,6 +11,9 @@ PanelWindow {
 
   required property var service
   readonly property var monitor: service.editScreen
+  // The service drops editScreen before this window unloads.
+  readonly property real originX: monitor ? monitor.x : 0
+  readonly property real originY: monitor ? monitor.y : 0
 
   screen: monitor
   anchors { top: true; bottom: true; left: true; right: true }
@@ -18,11 +21,10 @@ PanelWindow {
   exclusionMode: ExclusionMode.Ignore
   WlrLayershell.namespace: "predmaxim-annotate"
   WlrLayershell.layer: WlrLayer.Overlay
-  // Let go during a capture, so slurp gets the keyboard (Esc cancels it).
-  WlrLayershell.keyboardFocus: service.capturing ? WlrKeyboardFocus.None : WlrKeyboardFocus.Exclusive
+  WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
 
   function toGlobal(x, y) {
-    return Qt.point(x + editor.monitor.x, y + editor.monitor.y)
+    return Qt.point(x + editor.originX, y + editor.originY)
   }
 
   function beginText(gx, gy) {
@@ -69,27 +71,52 @@ PanelWindow {
       shapes: editor.service.editShapes
       revision: editor.service.editRevision
       accent: editor.service.accent
-      originX: editor.monitor.x
-      originY: editor.monitor.y
+      originX: editor.originX
+      originY: editor.originY
     }
 
     MouseArea {
       anchors.fill: parent
       cursorShape: Qt.CrossCursor
       property var shape: null
+      // Ctrl+Shift+S: the area being dragged, in this window's coordinates.
+      property point areaStart
+      property bool dragging: false
 
       onPressed: function(mouse) {
         editor.commitText()
+        if (editor.service.selectingArea) {
+          areaStart = Qt.point(mouse.x, mouse.y)
+          area.width = 0
+          area.height = 0
+          dragging = true
+          return
+        }
         var p = editor.toGlobal(mouse.x, mouse.y)
         if (editor.service.penTool === "text") editor.beginText(p.x, p.y)
         else shape = editor.service.startEditShape(p.x, p.y)
       }
       onPositionChanged: function(mouse) {
+        if (dragging) {
+          area.x = Math.min(areaStart.x, mouse.x)
+          area.y = Math.min(areaStart.y, mouse.y)
+          area.width = Math.abs(mouse.x - areaStart.x)
+          area.height = Math.abs(mouse.y - areaStart.y)
+          return
+        }
         if (!shape) return
         var p = editor.toGlobal(mouse.x, mouse.y)
         if (Model.extend(shape, p.x, p.y)) editor.service.editRevision++
       }
-      onReleased: {
+      onReleased: function(mouse) {
+        if (dragging) {
+          dragging = false
+          var a = editor.toGlobal(areaStart.x, areaStart.y), b = editor.toGlobal(mouse.x, mouse.y)
+          var geometry = Model.areaGeometry(a.x, a.y, b.x, b.y)
+          editor.service.selectingArea = false
+          if (geometry) editor.service.capture("region", geometry)
+          return
+        }
         if (shape) editor.service.endEditShape()
         shape = null
       }
@@ -101,8 +128,8 @@ PanelWindow {
       property real gx: 0
       property real gy: 0
       visible: false
-      x: gx - editor.monitor.x
-      y: gy - editor.monitor.y
+      x: gx - editor.originX
+      y: gy - editor.originY
       color: Model.colorOf(editor.service.penColor, editor.service.accent)
       font.pixelSize: Model.fontSize(editor.service.penWidth)
       font.bold: true
@@ -112,6 +139,15 @@ PanelWindow {
       Keys.onReturnPressed: editor.commitText()
       Keys.onEnterPressed: editor.commitText()
       Keys.onEscapePressed: editor.cancelText()
+    }
+
+    // The area being marked; hidden before the shot is taken.
+    Rectangle {
+      id: area
+      visible: editor.service.selectingArea && width > 0
+      color: Util.alpha("white", 0.08)
+      border.width: 1
+      border.color: "white"
     }
 
     Toolbar {

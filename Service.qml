@@ -47,6 +47,8 @@ Item {
   property var editShapes: []
   property int editRevision: 0
   property bool capturing: false
+  // Ctrl+Shift+S: the next drag in the editor marks the area to save.
+  property bool selectingArea: false
   readonly property string penTool: settings.editTool
   readonly property string penColor: settings.editColor
   readonly property int penWidth: settings.editWidth
@@ -195,18 +197,66 @@ Item {
 
   function closeEditor() {
     root.capturing = false
+    root.selectingArea = false
     root.editScreen = null
     root.editShapes = []
   }
 
-  // Filled in by Task 7.
-  function capture(kind) {}
+  // area: grim's -g geometry, for kind "region" (Model.areaGeometry).
+  function capture(kind, area) {
+    if (root.capturing || !root.editScreen) return
+    root.capturing = true  // Editor.qml hides the toolbar.
+    captureDelay.kind = kind
+    captureDelay.area = area || ""
+    captureDelay.restart()
+  }
+
+  function notify(text) {
+    Quickshell.execDetached(["omarchy-notification-send", "--app-name", root.tr("Annotate"), text])
+  }
+
+  Timer {
+    id: captureDelay
+    property string kind: ""
+    property string area: ""
+    // ponytail: a fixed wait for the toolbar to leave the screen; switch to
+    // the window's frameSwapped if it ever shows up in a shot.
+    interval: 100
+    onTriggered: {
+      capturer.kind = kind
+      capturer.command = Model.captureCommand(kind, root.editScreen.name, root.settings.saveDir, Model.fileName(new Date()), area)
+      capturer.running = true
+    }
+  }
+
+  Process {
+    id: capturer
+    property string kind: ""
+    stdout: StdioCollector { id: captureOut }
+    stderr: StdioCollector { id: captureErr }
+    onExited: function(exitCode) {
+      root.capturing = false
+      if (exitCode === 0) {
+        var file = String(captureOut.text || "").trim()
+        if (kind === "copy") root.notify(root.tr("Copied to the clipboard"))
+        else if (kind === "region") root.notify(root.tr("Saved and copied: %1", file))
+        else root.notify(root.tr("Saved: %1", file))
+        root.closeEditor()
+        return
+      }
+      // A failed capture keeps the editor open: the drawing is not lost.
+      var why = String(captureErr.text || "").trim() || ("exit " + exitCode)
+      if (kind === "copy") root.notify(root.tr("Not copied: %1", why))
+      else root.notify(root.tr("Not saved: %1", why))
+    }
+  }
 
   // Keys (Model.keyAction), toolbar clicks and the wheel.
   function act(action) {
-    if (action === "close") root.closeEditor()
+    if (action === "close" && root.selectingArea) root.selectingArea = false
+    else if (action === "close") root.closeEditor()
     else if (action === "save") root.capture("screen")
-    else if (action === "saveRegion") root.capture("region")
+    else if (action === "saveRegion") root.selectingArea = !root.capturing
     else if (action === "copy") root.capture("copy")
     else if (action === "undo") root.undo()
     else if (action === "wider") root.store({ editWidth: root.penWidth + Model.WIDTH_STEP })
