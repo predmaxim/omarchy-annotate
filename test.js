@@ -6,7 +6,7 @@ const os = require("os")
 const { spawnSync } = require("child_process")
 const load = (file, names) => new Function(
   fs.readFileSync(path.join(__dirname, file), "utf8").replace(".pragma library", "") + "; return {" + names + "}")()
-const M = load("Model.js", "PALETTE, TOOLS, DEFAULTS, WIDTH_STEP, colorOf, normalize, readEntry, parseEvent, newShape, extend, isEmpty, svgPath, arrowHead, fontSize, keyAction, screenAt, fileName, areaGeometry, captureCommand")
+const M = load("Model.js", "PALETTE, TOOLS, DEFAULTS, WIDTH_STEP, colorOf, normalize, readEntry, parseEvent, newShape, extend, isEmpty, svgPath, arrowHead, fontSize, keyAction, screenAt, fileName, areaGeometry, releasedArea, captureCommand")
 
 // Palette: keys resolve to colors; accent and unknown keys take the theme's accent.
 assert.strictEqual(M.PALETTE.length, 8)
@@ -124,6 +124,11 @@ assert.strictEqual(M.fileName(new Date(2026, 8, 29, 7, 5, 3)), "annotate-2026-09
 assert.strictEqual(M.areaGeometry(100.4, 50, 10, 200.6), "10,50 90x151")
 assert.strictEqual(M.areaGeometry(-1920, 0, -1900, 30), "-1920,0 20x30")
 assert.strictEqual(M.areaGeometry(5, 5, 6, 90), "")
+// Letting go of the button ends the frame; Esc mid-drag (selecting already
+// off) must not save anything.
+assert.strictEqual(M.releasedArea(true, 10, 20, 110, 70), "10,20 100x50")
+assert.strictEqual(M.releasedArea(false, 10, 20, 110, 70), "", "Esc mid-drag cancels the frame")
+assert.strictEqual(M.releasedArea(true, 10, 20, 11, 70), "")
 
 // Capture script, run with grim and wl-copy stubs in a scratch HOME.
 function capture(kind, saveDir, prepare, area) {

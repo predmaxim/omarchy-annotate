@@ -112,9 +112,11 @@ PanelWindow {
         if (dragging) {
           dragging = false
           var a = editor.toGlobal(areaStart.x, areaStart.y), b = editor.toGlobal(mouse.x, mouse.y)
-          var geometry = Model.areaGeometry(a.x, a.y, b.x, b.y)
+          var geometry = Model.releasedArea(editor.service.selectingArea, a.x, a.y, b.x, b.y)
+          // A frame too small to mean anything leaves the selection on.
+          if (!geometry) return
           editor.service.selectingArea = false
-          if (geometry) editor.service.capture("region", geometry)
+          editor.service.capture("region", geometry)
           return
         }
         if (shape) editor.service.endEditShape()

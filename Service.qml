@@ -225,6 +225,10 @@ Item {
     // the window's frameSwapped if it ever shows up in a shot.
     interval: 100
     onTriggered: {
+      if (!root.editScreen) {
+        root.capturing = false
+        return
+      }
       capturer.kind = kind
       capturer.command = Model.captureCommand(kind, root.editScreen.name, root.settings.saveDir, Model.fileName(new Date()), area)
       capturer.running = true
@@ -255,6 +259,9 @@ Item {
 
   // Keys (Model.keyAction), toolbar clicks and the wheel.
   function act(action) {
+    // A capture in flight owns the editor: closing it now would shoot the bare
+    // screen, or nothing at all.
+    if (root.capturing) return
     if (action === "close" && root.selectingArea) root.selectingArea = false
     else if (action === "close") root.closeEditor()
     else if (action === "save") root.capture("screen")

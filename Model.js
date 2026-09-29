@@ -212,6 +212,12 @@ function areaGeometry(x1, y1, x2, y2) {
   return x + "," + y + " " + w + "x" + h
 }
 
+// The area to save when the button comes up after a Ctrl+Shift+S drag; ""
+// when the frame was cancelled (Esc mid-drag) or is too small.
+function releasedArea(selecting, x1, y1, x2, y2) {
+  return selecting ? areaGeometry(x1, y1, x2, y2) : ""
+}
+
 // Saves or copies the monitor with the drawing on it (the overlay is on
 // screen, so grim takes it too), or saves an area of it and copies that too.
 // Prints the saved path. The default folder is Screenshots in the pictures
