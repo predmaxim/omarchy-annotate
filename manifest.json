@@ -6,9 +6,11 @@
   "author": "predmaxim",
   "description": "Draw on screen: Ctrl+Super+drag while held, Shift+Super+drag for shapes and text you can save or copy",
   "kinds": [
-    "service"
+    "service",
+    "panel"
   ],
   "entryPoints": {
-    "service": "Service.qml"
+    "service": "Service.qml",
+    "panel": "Settings.qml"
   }
 }

@@ -196,5 +196,6 @@ assert.strictEqual(I.textLanguage(envOf({ LANG: "ru_RU.UTF-8", LC_ALL: "en_US.UT
 assert.strictEqual(I.translator("ru")("Saved: %1", "/a.png"), "Сохранено: /a.png")
 const qml = fs.readdirSync(__dirname).filter(f => f.endsWith(".qml"))
 const keys = qml.flatMap(f => [...fs.readFileSync(path.join(__dirname, f), "utf8").matchAll(/\btr\("((?:[^"\\]|\\.)*)"/g)].map(m => m[1]))
+assert.ok(keys.length >= 16, "found " + keys.length + " tr() calls")
 assert.deepStrictEqual(keys.filter(k => !(k in I.TABLES.ru)), [])
 console.log("ok")

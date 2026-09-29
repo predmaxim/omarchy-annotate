@@ -14,7 +14,7 @@ var TABLES = {
     // Settings
     "Draw while held (Ctrl+Super+drag)": "Рисовать, пока зажаты клавиши (Ctrl+Super+мышь)",
     "Lines vanish when Super or Ctrl is let go.": "Линии исчезают, когда отпускаешь Super или Ctrl.",
-    "Editor (Shift+Super+drag)": "Редактор (Shift+Super+мышь)",
+    "Editor (Shift+Super+click)": "Редактор (Shift+Super+щелчок)",
     "Shapes and text. Ctrl+S saves the screen, Ctrl+Shift+S an area, Ctrl+C copies, Esc drops.":
       "Фигуры и текст. Ctrl+S — сохранить экран, Ctrl+Shift+S — область, Ctrl+C — копировать, Esc — сбросить.",
     "Width: %1 px": "Толщина: %1 px",

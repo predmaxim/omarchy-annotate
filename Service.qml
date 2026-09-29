@@ -47,6 +47,8 @@ Item {
   property var editShapes: []
   property int editRevision: 0
   property bool capturing: false
+  // Where the editor's toolbar was moved to (null: top centre), until a restart.
+  property var toolbarPos: null
   // Ctrl+Shift+S: the next drag in the editor marks the area to save.
   property bool selectingArea: false
   readonly property string penTool: settings.editTool
@@ -334,6 +336,11 @@ Item {
       for (var i = 0; i < screens.length; i++)
         if (screens[i].name === name) { root.openEditor(screens[i]); return "ok" }
       root.openEditor(screens.length > 0 ? screens[0] : null)
+      return "ok"
+    }
+    // Opens the settings window, or brings it forward if it is already open.
+    function settings(): string {
+      if (root.shell) root.shell.summon(root.pluginId, "{}")
       return "ok"
     }
     function clear(): string {

@@ -153,9 +153,9 @@ PanelWindow {
     Toolbar {
       service: editor.service
       visible: !editor.service.capturing
-      anchors.top: parent.top
-      anchors.topMargin: Style.space(16)
-      anchors.horizontalCenter: parent.horizontalCenter
+      // Top centre until moved; then where it was left (Toolbar.qml).
+      x: editor.service.toolbarPos ? editor.service.toolbarPos.x : (parent.width - width) / 2
+      y: editor.service.toolbarPos ? editor.service.toolbarPos.y : Style.space(16)
     }
   }
 }
