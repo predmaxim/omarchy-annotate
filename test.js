@@ -178,4 +178,13 @@ assert.notStrictEqual(c.status, 0)
 assert.strictEqual(c.out, "", "no path for a failed shot")
 assert.match(c.err, /grim: no output/)
 
+// Interface language, and a Russian line for every tr("…") in the QML.
+const I = load("I18n.js", "TABLES, textLanguage, translator")
+const envOf = o => n => o[n]
+assert.strictEqual(I.textLanguage(envOf({ LANG: "ru_RU.UTF-8" })), "ru")
+assert.strictEqual(I.textLanguage(envOf({ LANG: "ru_RU.UTF-8", LC_ALL: "en_US.UTF-8" })), "en")
+assert.strictEqual(I.translator("ru")("Saved: %1", "/a.png"), "Сохранено: /a.png")
+const qml = fs.readdirSync(__dirname).filter(f => f.endsWith(".qml"))
+const keys = qml.flatMap(f => [...fs.readFileSync(path.join(__dirname, f), "utf8").matchAll(/\btr\("((?:[^"\\]|\\.)*)"/g)].map(m => m[1]))
+assert.deepStrictEqual(keys.filter(k => !(k in I.TABLES.ru)), [])
 console.log("ok")
