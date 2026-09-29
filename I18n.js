@@ -20,7 +20,9 @@ var TABLES = {
     "Width: %1 px": "Толщина: %1 px",
     "Save to": "Сохранять в",
     "Empty — ~/Pictures/Screenshots": "Пусто — ~/Pictures/Screenshots",
-    "Done": "Готово"
+    "Done": "Готово",
+    // Bar indicator
+    "Draw on screen · right click: settings": "Рисование на экране · правый клик — настройки"
   }
 }
 
