@@ -4,7 +4,7 @@
 -- every config reload (a reload starts a fresh Lua state). Hyprland only
 -- reports the pointer on its event socket; the service draws:
 --   custom>>annotate temp start X Y   Ctrl+Super+button went down
---   custom>>annotate edit start X Y   Shift+Super+button went down
+--   custom>>annotate edit start X Y   Shift+Super+button: open the editor
 --   custom>>annotate move X Y         the cursor moved (at most once a frame)
 --   custom>>annotate end              the button came up
 -- Letting go of Ctrl/Super is seen by the temp overlay, which takes the
@@ -16,7 +16,7 @@
 -- touching a removed bind from Lua crashes Hyprland; tostring() is the one
 -- safe way to see whether a bind was removed elsewhere.
 
-local VERSION = 1
+local VERSION = 2
 if type(annotate) == "table" and annotate.version == VERSION then return end
 
 local FRAME_MS = 16
@@ -54,8 +54,10 @@ end
 function M.press(mode)
   local p = hl.get_cursor_pos()
   if not p then return end
-  state.drawing, state.x, state.y = true, p.x, p.y
   emit(string.format("%s start %.2f %.2f", mode, p.x, p.y))
+  -- The editor draws with its own mouse area from the next press on.
+  if mode == "edit" then return end
+  state.drawing, state.x, state.y = true, p.x, p.y
   M.sampler:set_enabled(true)
 end
 

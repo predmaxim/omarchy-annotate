@@ -42,10 +42,11 @@ Item {
       }
 
       Text {
-        visible: item.shape !== undefined && item.shape.type === "text"
-        x: item.shape ? item.shape.x1 : 0
-        y: item.shape ? item.shape.y1 : 0
-        text: item.shape && item.shape.text ? item.shape.text : ""
+        readonly property bool isText: item.shape !== undefined && item.shape.type === "text"
+        visible: isText
+        x: isText ? item.shape.x1 : 0
+        y: isText ? item.shape.y1 : 0
+        text: isText ? item.shape.text : ""
         color: item.ink
         font.pixelSize: item.shape ? Model.fontSize(item.shape.width) : 12
         font.bold: true

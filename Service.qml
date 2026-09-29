@@ -32,7 +32,7 @@ Item {
   property bool settingsLoaded: false
   property string appliedModes: ""
 
-  // The line annotate.lua is drawing: { mode: "temp" | "edit", shape }.
+  // The temp line annotate.lua is drawing.
   property var drawing: null
 
   property var tempShapes: []
@@ -47,8 +47,6 @@ Item {
   property var editShapes: []
   property int editRevision: 0
   property bool capturing: false
-  // Where the text tool was pressed with Shift+Super, for Editor.qml to pick up.
-  property var pendingText: null
   readonly property string penTool: settings.editTool
   readonly property string penColor: settings.editColor
   readonly property int penWidth: settings.editWidth
@@ -145,32 +143,82 @@ Item {
         var screen = Model.screenAt(Quickshell.screens, e.x, e.y)
         root.tempScreen = screen ? screen.name : ""
       }
-      root.drawing = { mode: "temp", shape: Model.newShape("pen", root.settings.tempColor, root.settings.tempWidth, e.x, e.y) }
-      root.tempShapes = root.tempShapes.concat([root.drawing.shape])
+      root.drawing = Model.newShape("pen", root.settings.tempColor, root.settings.tempWidth, e.x, e.y)
+      root.tempShapes = root.tempShapes.concat([root.drawing])
     } else if (e.type === "start") {
       if (root.editScreen) return  // Already open: its own mouse area draws.
-      root.openEditor(Model.screenAt(Quickshell.screens, e.x, e.y), e.x, e.y, true)
+      root.openEditor(Model.screenAt(Quickshell.screens, e.x, e.y))
     } else if (e.type === "move") {
-      if (root.drawing && Model.extend(root.drawing.shape, e.x, e.y)) {
-        if (root.drawing.mode === "temp") root.tempRevision++
-        else root.editRevision++
-      }
+      if (root.drawing && Model.extend(root.drawing, e.x, e.y)) root.tempRevision++
     } else if (e.type === "end") {
-      if (root.drawing && root.drawing.mode === "edit") root.endEditShape()
       root.drawing = null
     }
   }
 
   function clearTemp() {
-    if (root.drawing && root.drawing.mode === "temp") root.drawing = null
+    root.drawing = null
     root.tempShapes = []
     root.tempScreen = ""
   }
 
-  // ------------------------------------------------------------ editor (Task 6)
+  // ------------------------------------------------------------ editor
 
-  function openEditor(screen, x, y, startLine) {}
-  function endEditShape() {}
+  // From Shift+Super+press or IPC `edit`. Drawing starts with the next press,
+  // in Editor.qml's own mouse area.
+  function openEditor(screen) {
+    if (!screen) return
+    root.editShapes = []
+    root.editScreen = screen
+  }
+
+  function startEditShape(x, y) {
+    var shape = Model.newShape(root.penTool, root.penColor, root.penWidth, x, y)
+    root.editShapes = root.editShapes.concat([shape])
+    return shape
+  }
+
+  // Drops the last shape if it came out empty (a click with the rect tool).
+  function endEditShape() {
+    var last = root.editShapes[root.editShapes.length - 1]
+    if (last && Model.isEmpty(last)) root.editShapes = root.editShapes.slice(0, -1)
+  }
+
+  function addText(x, y, text) {
+    var shape = Model.newShape("text", root.penColor, root.penWidth, x, y)
+    shape.text = text
+    if (!Model.isEmpty(shape)) root.editShapes = root.editShapes.concat([shape])
+  }
+
+  function undo() {
+    if (root.editShapes.length > 0) root.editShapes = root.editShapes.slice(0, -1)
+  }
+
+  function closeEditor() {
+    root.capturing = false
+    root.editScreen = null
+    root.editShapes = []
+  }
+
+  // Filled in by Task 7.
+  function capture(kind) {}
+
+  // Keys (Model.keyAction), toolbar clicks and the wheel.
+  function act(action) {
+    if (action === "close") root.closeEditor()
+    else if (action === "save") root.capture("screen")
+    else if (action === "saveRegion") root.capture("region")
+    else if (action === "copy") root.capture("copy")
+    else if (action === "undo") root.undo()
+    else if (action === "wider") root.store({ editWidth: root.penWidth + Model.WIDTH_STEP })
+    else if (action === "narrower") root.store({ editWidth: root.penWidth - Model.WIDTH_STEP })
+    else if (action.indexOf("tool:") === 0) root.store({ editTool: action.slice(5) })
+    else if (action.indexOf("color:") === 0) root.store({ editColor: action.slice(6) })
+  }
+
+  LazyLoader {
+    active: root.editScreen !== null
+    Editor { service: root }
+  }
 
   // ------------------------------------------------------------ temp lines
 
@@ -227,6 +275,16 @@ Item {
         shapes: root.editShapes.length,
         settings: root.settings
       })
+    }
+    // Opens the editor on the focused monitor, without a first line.
+    function edit(): string {
+      if (root.editScreen) return "already open"
+      var name = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : ""
+      var screens = Quickshell.screens
+      for (var i = 0; i < screens.length; i++)
+        if (screens[i].name === name) { root.openEditor(screens[i]); return "ok" }
+      root.openEditor(screens.length > 0 ? screens[0] : null)
+      return "ok"
     }
     function clear(): string {
       root.clearTemp()

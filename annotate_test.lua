@@ -55,16 +55,18 @@ assert(events[#events - 1] == "annotate move 15.00 25.00" and last() == "annotat
 assert(not A.sampler.enabled)
 n = #events; fire("button"); assert(#events == n, "a stray button release sends nothing")
 
--- An edit line.
+-- Shift+Super+click only opens the editor: no line, no sampling, no end.
 fire("edit"); assert(last() == "annotate edit start 15.00 25.00", last())
-fire("button"); assert(last() == "annotate end")
+assert(not A.sampler.enabled, "opening the editor draws nothing")
+n = #events; fire("button"); assert(#events == n)
 
 -- Modes: only the owner switches them; switching everything off ends a line.
 assert(A.set_modes("b", false, false) == "not owner")
 assert(b("temp").enabled)
 assert(A.set_modes("a", false, true) == "ok")
 assert(not b("temp").enabled and b("edit").enabled and b("button").enabled)
-fire("edit")
+assert(A.activate("a", true, true) == "ok")
+fire("temp")
 assert(A.set_modes("a", false, false) == "ok")
 assert(not b("button").enabled and last() == "annotate end" and not A.sampler.enabled)
 
