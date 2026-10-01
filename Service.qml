@@ -213,8 +213,10 @@ Item {
     captureDelay.restart()
   }
 
-  function notify(text) {
-    Quickshell.execDetached(["omarchy-notification-send", "--app-name", root.tr("Annotate"), text])
+  // With a file, a click on the notification opens it.
+  function notify(text, file) {
+    Quickshell.execDetached(["omarchy-notification-send", "--app-name", root.tr("Annotate"), text]
+      .concat(file ? ["--exec", "xdg-open", file] : []))
   }
 
   Timer {
@@ -245,8 +247,8 @@ Item {
       if (exitCode === 0) {
         var file = String(captureOut.text || "").trim()
         if (kind === "copy") root.notify(root.tr("Copied to the clipboard"))
-        else if (kind === "region") root.notify(root.tr("Saved and copied: %1", file))
-        else root.notify(root.tr("Saved: %1", file))
+        else if (kind === "region") root.notify(root.tr("Saved and copied: %1", file), file)
+        else root.notify(root.tr("Saved: %1", file), file)
         root.closeEditor()
         return
       }
