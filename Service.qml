@@ -47,7 +47,7 @@ Item {
   property var editShapes: []
   property int editRevision: 0
   property bool capturing: false
-  // Where the editor's toolbar was moved to (null: top centre), until a restart.
+  // Where the editor's toolbar was moved to (null: bottom centre), until a restart.
   property var toolbarPos: null
   // Ctrl+Shift+S: the next drag in the editor marks the area to save.
   property bool selectingArea: false
@@ -323,6 +323,11 @@ Item {
       }
     }
   }
+
+  // Drawing on screen or the editor open: Indicator.qml lights up by this file.
+  readonly property bool drawingMode: root.editScreen !== null || root.tempShapes.length > 0
+  onDrawingModeChanged: Quickshell.execDetached(["sh", "-c", root.drawingMode
+    ? 'echo 1 >"$XDG_RUNTIME_DIR/predmaxim-annotate"' : 'rm -f "$XDG_RUNTIME_DIR/predmaxim-annotate"'])
 
   // ------------------------------------------------------------ IPC
 
