@@ -14,7 +14,7 @@ Rectangle {
   readonly property color fg: Color.menu.text
 
   color: Color.menu.background
-  radius: Style.space(10)
+  radius: Style.cornerRadius
   border.width: 1
   border.color: Util.alpha(fg, 0.25)
   implicitWidth: row.implicitWidth + Style.space(16)
