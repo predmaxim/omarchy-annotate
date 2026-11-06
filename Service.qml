@@ -41,6 +41,10 @@ Item {
   // letting go of Ctrl/Super reaches it (Hyprland drops release binds on a
   // modifier once a mouse bind fired while it was held).
   property string tempScreen: ""
+  // The overlay takes the keyboard only once the first line's button is up:
+  // a layer that grabs the keyboard while it maps makes Hyprland 0.56 drop the
+  // held button's release, so `end` never came and the line chased the cursor.
+  property bool tempFocus: false
 
   // The editor is open while editScreen is set.
   property var editScreen: null
@@ -156,6 +160,7 @@ Item {
       if (root.drawing && Model.extend(root.drawing, e.x, e.y)) root.tempRevision++
     } else if (e.type === "end") {
       root.drawing = null
+      if (root.tempShapes.length > 0) root.tempFocus = true
     }
   }
 
@@ -163,6 +168,7 @@ Item {
     root.drawing = null
     root.tempShapes = []
     root.tempScreen = ""
+    root.tempFocus = false
   }
 
   // ------------------------------------------------------------ editor
@@ -297,7 +303,7 @@ Item {
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.namespace: "predmaxim-annotate"
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: overlay.modelData.name === root.tempScreen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+        WlrLayershell.keyboardFocus: overlay.modelData.name === root.tempScreen && root.tempFocus ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
         // An empty input region: clicks go to the windows below.
         mask: Region {}
 
