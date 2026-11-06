@@ -41,9 +41,11 @@ Item {
   // letting go of Ctrl/Super reaches it (Hyprland drops release binds on a
   // modifier once a mouse bind fired while it was held).
   property string tempScreen: ""
-  // The overlay takes the keyboard only once the first line's button is up:
-  // a layer that grabs the keyboard while it maps makes Hyprland 0.56 drop the
-  // held button's release, so `end` never came and the line chased the cursor.
+  // The overlay takes the keyboard only once the first line's button is up. A
+  // layer that takes keyboard focus makes Hyprland release the held buttons
+  // (releaseAllMouseButtons in LayerSurface.cpp) and then ignore the real
+  // release (onMouseButton), so the `mouse:272` release bind never fired, `end`
+  // never came and the line chased the cursor.
   property bool tempFocus: false
 
   // The editor is open while editScreen is set.

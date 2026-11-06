@@ -9,7 +9,9 @@
 --   custom>>annotate end              the button came up
 -- Letting go of Ctrl/Super is seen by the temp overlay, which takes the
 -- keyboard: release binds on a modifier never fire once a mouse bind fired
--- while it was held (Hyprland 0.56, checked by hand).
+-- while it was held (Hyprland 0.56, checked by hand). Hyprland 0.57 rewrote
+-- bind matching; once Omarchy ships it, try release binds on Ctrl/Super here
+-- instead of the overlay's keyboard.
 --
 -- Hyprland 0.56 (as learned in omannotate): binds are made once and then only
 -- enabled or disabled. Unbinding removes every bind on the same key, and
